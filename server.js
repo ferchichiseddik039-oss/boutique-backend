@@ -24,7 +24,12 @@ const PORT = process.env.PORT || 5001;
 app.use(helmet());
 app.use(compression());
 app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:3000",
+  origin: [
+    'https://frontend-vercel-qq0w8733v-seddik-s-projects-c94a56ab.vercel.app',
+    'https://frontend-vercel-a1r2xvt24-seddik-s-projects-c94a56ab.vercel.app',
+    'https://frontend-vercel-1m52v3e0y-seddik-s-projects-c94a56ab.vercel.app',
+    process.env.CLIENT_URL || "http://localhost:3000"
+  ],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
