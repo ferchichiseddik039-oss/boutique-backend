@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors({
   origin: [
+    'https://frontend-vercel-qq0w8733v-seddik-s-projects-c94a56ab.vercel.app',
     'https://frontend-vercel-a1r2xvt24-seddik-s-projects-c94a56ab.vercel.app',
     'https://frontend-vercel-1m52v3e0y-seddik-s-projects-c94a56ab.vercel.app',
     'http://localhost:3000'
