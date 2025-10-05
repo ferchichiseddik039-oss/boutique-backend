@@ -2,9 +2,9 @@
   "name": "boutique-backend-minimal",
   "version": "1.0.0",
   "description": "Backend minimal pour boutique vêtements - Render Deployment",
-  "main": "real-backend-server.js",
+  "main": "hybrid-server.js",
   "scripts": {
-    "start": "node real-backend-server.js",
+    "start": "node hybrid-server.js",
     "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
