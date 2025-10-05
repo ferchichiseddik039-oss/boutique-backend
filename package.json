@@ -2,15 +2,17 @@
   "name": "boutique-backend-minimal",
   "version": "1.0.0",
   "description": "Backend minimal pour boutique vêtements - Render Deployment",
-  "main": "simple-working-server.js",
+  "main": "real-backend-server.js",
   "scripts": {
-    "start": "node simple-working-server.js",
+    "start": "node real-backend-server.js",
     "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
     "express": "^4.18.2",
+    "mongoose": "^7.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
-    "jsonwebtoken": "^9.0.0"
+    "jsonwebtoken": "^9.0.0",
+    "bcryptjs": "^2.4.3"
   }
 }
