@@ -255,6 +255,125 @@ app.get('/manifest.json', (req, res) => {
   });
 });
 
+// Cart endpoint
+app.get('/api/cart', (req, res) => {
+  const token = req.headers['x-auth-token'];
+  if (!token) {
+    return res.status(401).json({ success: false, message: "Token d'authentification requis" });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key_2024');
+    // Retourner un panier vide pour l'instant
+    res.json({ success: true, cart: { articles: [] } });
+  } catch (jwtError) {
+    res.status(401).json({ success: false, message: "Token invalide ou expiré" });
+  }
+});
+
+app.post('/api/cart', (req, res) => {
+  const token = req.headers['x-auth-token'];
+  if (!token) {
+    return res.status(401).json({ success: false, message: "Token d'authentification requis" });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key_2024');
+    // Pour l'instant, juste retourner un succès
+    res.json({ success: true, message: "Article ajouté au panier" });
+  } catch (jwtError) {
+    res.status(401).json({ success: false, message: "Token invalide ou expiré" });
+  }
+});
+
+// Orders endpoint
+app.get('/api/orders', (req, res) => {
+  const token = req.headers['x-auth-token'];
+  if (!token) {
+    return res.status(401).json({ success: false, message: "Token d'authentification requis" });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key_2024');
+    // Retourner des commandes vides pour l'instant
+    res.json({ success: true, orders: [] });
+  } catch (jwtError) {
+    res.status(401).json({ success: false, message: "Token invalide ou expiré" });
+  }
+});
+
+// Admin orders endpoint
+app.get('/api/orders/admin/toutes', (req, res) => {
+  const token = req.headers['x-auth-token'];
+  if (!token) {
+    return res.status(401).json({ success: false, message: "Token d'authentification requis" });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key_2024');
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ success: false, message: "Accès administrateur requis" });
+    }
+    // Retourner des commandes vides pour l'instant
+    res.json({ success: true, orders: [], total: 0 });
+  } catch (jwtError) {
+    res.status(401).json({ success: false, message: "Token invalide ou expiré" });
+  }
+});
+
+// Upload endpoint (pour l'admin)
+app.post('/api/upload/product-images', (req, res) => {
+  const token = req.headers['x-auth-token'];
+  if (!token) {
+    return res.status(401).json({ success: false, message: "Token d'authentification requis" });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key_2024');
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ success: false, message: "Accès administrateur requis" });
+    }
+    
+    // Pour l'instant, retourner des URLs d'images fictives
+    const mockImages = [
+      'https://frontend-vercel-qi8v4xnmn-seddik-s-projects-c94a56ab.vercel.app/hoodie-real.png',
+      'https://frontend-vercel-qi8v4xnmn-seddik-s-projects-c94a56ab.vercel.app/hoodie-base.png'
+    ];
+    
+    res.json({ 
+      success: true, 
+      images: mockImages.map(url => ({ url, filename: url.split('/').pop() }))
+    });
+  } catch (jwtError) {
+    res.status(401).json({ success: false, message: "Token invalide ou expiré" });
+  }
+});
+
+// Product creation endpoint
+app.post('/api/products', (req, res) => {
+  const token = req.headers['x-auth-token'];
+  if (!token) {
+    return res.status(401).json({ success: false, message: "Token d'authentification requis" });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key_2024');
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ success: false, message: "Accès administrateur requis" });
+    }
+    
+    const productData = req.body;
+    // Pour l'instant, juste retourner un succès
+    res.json({ 
+      success: true, 
+      message: "Produit créé avec succès",
+      product: { _id: 'new-product-' + Date.now(), ...productData }
+    });
+  } catch (jwtError) {
+    res.status(401).json({ success: false, message: "Token invalide ou expiré" });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Serveur démarré sur le port ${PORT}`);
