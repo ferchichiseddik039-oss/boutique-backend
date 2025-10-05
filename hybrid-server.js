@@ -28,6 +28,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 // Middleware CORS
 app.use(cors({
   origin: [
+    'https://frontend-vercel-qi8v4xnmn-seddik-s-projects-c94a56ab.vercel.app',
     'https://frontend-vercel-n9rf7647y-seddik-s-projects-c94a56ab.vercel.app',
     'https://frontend-vercel-ogaxzobmd-seddik-s-projects-c94a56ab.vercel.app',
     'https://frontend-vercel-qq0w8733v-seddik-s-projects-c94a56ab.vercel.app',
@@ -81,8 +82,8 @@ const fallbackProducts = [
     prix: 89.99,
     description: 'Hoodie de qualité premium avec logo AYNEXT personnalisable',
     images: [
-      'https://frontend-vercel-n9rf7647y-seddik-s-projects-c94a56ab.vercel.app/hoodie-real.png',
-      'https://frontend-vercel-n9rf7647y-seddik-s-projects-c94a56ab.vercel.app/hoodie-base.png'
+      'https://frontend-vercel-qi8v4xnmn-seddik-s-projects-c94a56ab.vercel.app/hoodie-real.png',
+      'https://frontend-vercel-qi8v4xnmn-seddik-s-projects-c94a56ab.vercel.app/hoodie-base.png'
     ],
     couleurs: ['Noir', 'Blanc', 'Gris'],
     tailles: ['S', 'M', 'L', 'XL'],
@@ -96,8 +97,8 @@ const fallbackProducts = [
     prix: 89.99,
     description: 'Hoodie blanc premium avec logo AYNEXT personnalisable',
     images: [
-      'https://frontend-vercel-n9rf7647y-seddik-s-projects-c94a56ab.vercel.app/hoodie-white.jpg',
-      'https://frontend-vercel-n9rf7647y-seddik-s-projects-c94a56ab.vercel.app/hoodie-simple.svg'
+      'https://frontend-vercel-qi8v4xnmn-seddik-s-projects-c94a56ab.vercel.app/hoodie-white.jpg',
+      'https://frontend-vercel-qi8v4xnmn-seddik-s-projects-c94a56ab.vercel.app/hoodie-simple.svg'
     ],
     couleurs: ['Blanc', 'Noir'],
     tailles: ['S', 'M', 'L', 'XL'],
