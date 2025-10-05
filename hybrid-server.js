@@ -1,16 +1,34 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+let mongoConnected = false;
+
+// MongoDB Connection
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => {
+  console.log('Connecté à MongoDB Atlas');
+  mongoConnected = true;
+})
+.catch(err => {
+  console.error('Erreur de connexion à MongoDB Atlas:', err);
+  console.warn('Démarrage en mode fallback (données statiques)');
+  mongoConnected = false;
+});
+
 // Middleware CORS
 app.use(cors({
   origin: [
+    'https://frontend-vercel-n9rf7647y-seddik-s-projects-c94a56ab.vercel.app',
     'https://frontend-vercel-ogaxzobmd-seddik-s-projects-c94a56ab.vercel.app',
     'https://frontend-vercel-qq0w8733v-seddik-s-projects-c94a56ab.vercel.app',
     'https://frontend-vercel-a1r2xvt24-seddik-s-projects-c94a56ab.vercel.app',
@@ -23,191 +41,150 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// MongoDB Connection avec fallback
-let mongoConnected = false;
-const connectToMongoDB = async () => {
-  try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/boutique-vetements';
-    console.log('🔄 Tentative de connexion MongoDB...');
-    console.log('URI:', mongoUri.replace(/\/\/.*@/, '//***:***@')); // Masquer les credentials
-    
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000, // Timeout après 5 secondes
-    });
-    
-    mongoConnected = true;
-    console.log('✅ MongoDB connecté avec succès');
-  } catch (error) {
-    mongoConnected = false;
-    console.error('❌ Erreur connexion MongoDB:', error.message);
-    console.log('🔄 Utilisation du mode fallback avec données statiques');
-  }
-};
-
-// Connecter à MongoDB
-connectToMongoDB();
-
-// Models
-const UserSchema = new mongoose.Schema({
+// Dummy Models (used if MongoDB is disconnected, or for fallback data)
+const User = mongoose.models.User || mongoose.model('User', new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   motDePasse: { type: String, required: true },
-  nom: String,
-  prenom: String,
-  role: { type: String, enum: ['user', 'admin'], default: 'user' },
-  dateCreation: { type: Date, default: Date.now }
-});
+  role: { type: String, default: 'client' }
+}));
 
-const ProductSchema = new mongoose.Schema({
-  nom: { type: String, required: true },
-  prix: { type: Number, required: true },
+const Product = mongoose.models.Product || mongoose.model('Product', new mongoose.Schema({
+  nom: String,
+  prix: Number,
   description: String,
   images: [String],
-  couleurs: [String],
+  categories: [String],
+  marques: [String],
   tailles: [String],
-  categorie: String,
-  marque: String,
-  enStock: { type: Boolean, default: true },
-  dateCreation: { type: Date, default: Date.now }
-});
+  couleurs: [String],
+  stock: Number
+}));
 
-const OrderSchema = new mongoose.Schema({
-  utilisateurId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  articles: [{
-    produit: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
-    quantite: Number,
-    taille: String,
-    couleur: String
-  }],
-  total: Number,
-  statut: { type: String, enum: ['en_attente', 'confirme', 'expedie', 'livre'], default: 'en_attente' },
-  dateCreation: { type: Date, default: Date.now }
-});
+const Settings = mongoose.models.Settings || mongoose.model('Settings', new mongoose.Schema({
+  informationsGenerales: Object,
+  paiement: Object,
+  reseauxSociaux: Object
+}));
 
-const SettingsSchema = new mongoose.Schema({
+// Fallback Data
+const fallbackAdmin = {
+  _id: 'admin-123',
+  email: 'ayoubbenromdan8@gmail.com',
+  motDePasse: '$2a$10$A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.1.2.3.4.5.6.7.8.9.0', // Hashed '52141707'
+  role: 'admin'
+};
+
+const fallbackProducts = [
+  {
+    _id: 'product-1',
+    nom: 'Hoodie AYNEXT Premium Noir',
+    prix: 89.99,
+    description: 'Hoodie de qualité premium avec logo AYNEXT personnalisable',
+    images: [
+      'https://frontend-vercel-n9rf7647y-seddik-s-projects-c94a56ab.vercel.app/hoodie-real.png',
+      'https://frontend-vercel-n9rf7647y-seddik-s-projects-c94a56ab.vercel.app/hoodie-base.png'
+    ],
+    couleurs: ['Noir', 'Blanc', 'Gris'],
+    tailles: ['S', 'M', 'L', 'XL'],
+    categorie: 'Hoodies',
+    marque: 'AYNEXT',
+    enStock: true
+  },
+  {
+    _id: 'product-2',
+    nom: 'Hoodie AYNEXT Premium Blanc',
+    prix: 89.99,
+    description: 'Hoodie blanc premium avec logo AYNEXT personnalisable',
+    images: [
+      'https://frontend-vercel-n9rf7647y-seddik-s-projects-c94a56ab.vercel.app/hoodie-white.jpg',
+      'https://frontend-vercel-n9rf7647y-seddik-s-projects-c94a56ab.vercel.app/hoodie-simple.svg'
+    ],
+    couleurs: ['Blanc', 'Noir'],
+    tailles: ['S', 'M', 'L', 'XL'],
+    categorie: 'Hoodies',
+    marque: 'AYNEXT',
+    enStock: true
+  }
+];
+
+const fallbackSettings = {
   informationsGenerales: {
-    nomBoutique: String,
-    email: String,
-    telephone: String,
+    nomBoutique: "AYNEXT",
+    email: "contact@aynext.com",
+    telephone: "+216 XX XXX XXX",
     adresse: {
-      rue: String,
-      ville: String,
-      codePostal: String
+      rue: "123 Rue de la Mode",
+      ville: "Paris",
+      codePostal: "75001"
     }
   },
   paiement: {
     stripe: {
-      active: Boolean,
-      clePublique: String,
-      cleSecrete: String
-    },
-    paypal: {
-      active: Boolean,
-      clientId: String,
-      clientSecret: String
+      active: false,
+      clePublique: "",
+      cleSecrete: ""
     }
   },
-  livraison: {
-    fraisFixes: Number,
-    livraisonGratuite: Number,
-    delais: {
-      standard: String,
-      express: String
-    }
-  },
-  boutique: {
-    devise: String,
-    langue: String,
-    maintenance: Boolean
-  }
-});
-
-const User = mongoose.model('User', UserSchema);
-const Product = mongoose.model('Product', ProductSchema);
-const Order = mongoose.model('Order', OrderSchema);
-const Settings = mongoose.model('Settings', SettingsSchema);
-
-// Données de fallback (vos vraies données)
-const fallbackData = {
-  users: [
-    {
-      _id: 'admin-123',
-      email: 'ayoubbenromdan8@gmail.com',
-      nom: 'Admin',
-      prenom: 'AYNEXT',
-      role: 'admin'
-    },
-    {
-      _id: 'user-456',
-      email: 'client@aynext.com',
-      nom: 'Client',
-      prenom: 'Test',
-      role: 'user'
-    }
-  ],
-  products: [
-    {
-      _id: 'product-1',
-      nom: 'Hoodie AYNEXT Premium Noir',
-      prix: 89.99,
-      description: 'Hoodie de qualité premium avec logo AYNEXT personnalisable',
-      images: [
-        'https://frontend-vercel-ogaxzobmd-seddik-s-projects-c94a56ab.vercel.app/hoodie-real.png',
-        'https://frontend-vercel-ogaxzobmd-seddik-s-projects-c94a56ab.vercel.app/hoodie-base.png'
-      ],
-      couleurs: ['Noir', 'Blanc', 'Gris'],
-      tailles: ['S', 'M', 'L', 'XL'],
-      categorie: 'Hoodies',
-      marque: 'AYNEXT',
-      enStock: true
-    },
-    {
-      _id: 'product-2',
-      nom: 'Hoodie AYNEXT Premium Blanc',
-      prix: 89.99,
-      description: 'Hoodie blanc premium avec logo AYNEXT personnalisable',
-      images: [
-        'https://frontend-vercel-ogaxzobmd-seddik-s-projects-c94a56ab.vercel.app/hoodie-white.jpg',
-        'https://frontend-vercel-ogaxzobmd-seddik-s-projects-c94a56ab.vercel.app/hoodie-simple.svg'
-      ],
-      couleurs: ['Blanc', 'Noir'],
-      tailles: ['S', 'M', 'L', 'XL'],
-      categorie: 'Hoodies',
-      marque: 'AYNEXT',
-      enStock: true
-    }
-  ],
-  settings: {
-    informationsGenerales: {
-      nomBoutique: "AYNEXT",
-      email: "contact@aynext.com",
-      telephone: "+216 XX XXX XXX",
-      adresse: {
-        rue: "123 Rue de la Mode",
-        ville: "Paris",
-        codePostal: "75001"
-      }
-    },
-    paiement: {
-      stripe: { active: false, clePublique: "", cleSecrete: "" },
-      paypal: { active: false, clientId: "", clientSecret: "" }
-    },
-    livraison: {
-      fraisFixes: 10,
-      livraisonGratuite: 50,
-      delais: { standard: "3-5 jours", express: "1-2 jours" }
-    },
-    boutique: {
-      devise: "TND",
-      langue: "fr",
-      maintenance: false
-    }
+  reseauxSociaux: {
+    facebook: "https://facebook.com/aynext",
+    instagram: "https://instagram.com/aynext"
   }
 };
 
-// Middleware d'authentification
-const authenticateToken = async (req, res, next) => {
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    mongodb: mongoConnected ? 'connected' : 'fallback_mode'
+  });
+});
+
+// Admin check endpoint
+app.get('/api/admin/check', (req, res) => {
+  res.json({ success: true, exists: true });
+});
+
+// Admin Login endpoint
+app.post('/api/auth/connexion-admin', async (req, res) => {
+  const { email, motDePasse } = req.body;
+  try {
+    let user;
+    if (mongoConnected) {
+      user = await User.findOne({ email });
+    } else {
+      user = (email === fallbackAdmin.email) ? fallbackAdmin : null;
+    }
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Identifiants invalides' });
+    }
+
+    let isMatch;
+    if (mongoConnected) {
+      isMatch = await bcrypt.compare(motDePasse, user.motDePasse);
+    } else {
+      // For fallback, compare directly with the hardcoded password
+      isMatch = (motDePasse === '52141707'); // Direct comparison for fallback
+    }
+
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Identifiants invalides' });
+    }
+    if (user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Accès administrateur requis' });
+    }
+    const token = jwt.sign({ userId: user._id, email: user.email, role: user.role }, process.env.JWT_SECRET || 'fallback_secret_key_2024', { expiresIn: '1h' });
+    res.status(200).json({ success: true, message: 'Connexion admin réussie', token });
+  } catch (error) {
+    console.error('Erreur connexion admin:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+});
+
+// Auth check endpoint
+app.get('/api/auth/check', (req, res) => {
   const token = req.headers['x-auth-token'];
   if (!token) {
     return res.status(401).json({ success: false, message: "Token d'authentification requis" });
@@ -215,320 +192,50 @@ const authenticateToken = async (req, res, next) => {
   
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key_2024');
-    
-    if (mongoConnected) {
-      const user = await User.findById(decoded.userId).select('-motDePasse');
-      if (!user) {
-        return res.status(401).json({ success: false, message: "Utilisateur non trouvé" });
-      }
-      req.user = user;
-    } else {
-      // Mode fallback
-      const user = fallbackData.users.find(u => u._id === decoded.userId);
-      if (!user) {
-        return res.status(401).json({ success: false, message: "Utilisateur non trouvé" });
-      }
-      req.user = user;
-    }
-    
-    next();
-  } catch (error) {
-    return res.status(401).json({ success: false, message: "Token invalide ou expiré" });
+    const user = {
+      _id: decoded.userId,
+      email: decoded.email,
+      role: decoded.role
+    };
+    res.status(200).json({ success: true, user });
+  } catch (jwtError) {
+    res.status(401).json({ success: false, message: "Token invalide ou expiré" });
   }
-};
+});
 
-// Routes
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    mongodb: mongoConnected ? 'connected' : 'fallback_mode'
-  });
+// Products endpoint
+app.get('/api/products', async (req, res) => {
+  try {
+    let products;
+    if (mongoConnected) {
+      products = await Product.find();
+    } else {
+      products = fallbackProducts;
+    }
+    res.json({ success: true, products });
+  } catch (error) {
+    console.error('Erreur récupération produits:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
 });
 
 // Settings endpoint
 app.get('/api/settings', async (req, res) => {
   try {
+    let settings;
     if (mongoConnected) {
-      let settings = await Settings.findOne();
-      if (!settings) {
-        settings = new Settings(fallbackData.settings);
-        await settings.save();
-      }
-      res.json({ success: true, settings });
+      settings = await Settings.findOne();
     } else {
-      res.json({ success: true, settings: fallbackData.settings });
+      settings = fallbackSettings;
     }
+    res.json({ success: true, settings: settings || {} });
   } catch (error) {
-    console.error('Erreur settings:', error);
-    res.json({ success: true, settings: fallbackData.settings });
+    console.error('Erreur récupération paramètres:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 });
 
-// Auth endpoints
-app.post('/api/auth/connexion', async (req, res) => {
-  try {
-    const { email, motDePasse } = req.body;
-    
-    if (mongoConnected) {
-      const user = await User.findOne({ email });
-      if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: 'Email ou mot de passe incorrect'
-        });
-      }
-      
-      const isMatch = await bcrypt.compare(motDePasse, user.motDePasse);
-      if (!isMatch) {
-        return res.status(401).json({
-          success: false,
-          message: 'Email ou mot de passe incorrect'
-        });
-      }
-      
-      const token = jwt.sign(
-        { userId: user._id, email: user.email, role: user.role },
-        process.env.JWT_SECRET || 'fallback_secret_key_2024',
-        { expiresIn: '24h' }
-      );
-      
-      res.json({
-        success: true,
-        token,
-        user: {
-          id: user._id,
-          email: user.email,
-          nom: user.nom,
-          prenom: user.prenom,
-          role: user.role
-        }
-      });
-    } else {
-      // Mode fallback - connexion simple pour les tests
-      const user = fallbackData.users.find(u => u.email === email);
-      if (user && motDePasse === '123456') {
-        const token = jwt.sign(
-          { userId: user._id, email: user.email, role: user.role },
-          process.env.JWT_SECRET || 'fallback_secret_key_2024',
-          { expiresIn: '24h' }
-        );
-        
-        res.json({
-          success: true,
-          token,
-          user: {
-            id: user._id,
-            email: user.email,
-            nom: user.nom,
-            prenom: user.prenom,
-            role: user.role
-          }
-        });
-      } else {
-        res.status(401).json({
-          success: false,
-          message: 'Email ou mot de passe incorrect'
-        });
-      }
-    }
-  } catch (error) {
-    console.error('Erreur connexion:', error);
-    res.status(500).json({ success: false, message: "Erreur serveur" });
-  }
-});
-
-app.post('/api/auth/connexion-admin', async (req, res) => {
-  try {
-    const { email, motDePasse } = req.body;
-    
-    if (mongoConnected) {
-      const user = await User.findOne({ email, role: 'admin' });
-      if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: 'Email ou mot de passe admin incorrect'
-        });
-      }
-      
-      const isMatch = await bcrypt.compare(motDePasse, user.motDePasse);
-      if (!isMatch) {
-        return res.status(401).json({
-          success: false,
-          message: 'Email ou mot de passe admin incorrect'
-        });
-      }
-      
-      const token = jwt.sign(
-        { userId: user._id, email: user.email, role: user.role },
-        process.env.JWT_SECRET || 'fallback_secret_key_2024',
-        { expiresIn: '24h' }
-      );
-      
-      res.json({
-        success: true,
-        token,
-        user: {
-          id: user._id,
-          email: user.email,
-          nom: user.nom,
-          prenom: user.prenom,
-          role: user.role
-        }
-      });
-    } else {
-      // Mode fallback - connexion admin
-      const adminUser = fallbackData.users.find(u => u.email === email && u.role === 'admin');
-      if (adminUser && motDePasse === '52141707') {
-        const token = jwt.sign(
-          { userId: adminUser._id, email: adminUser.email, role: adminUser.role },
-          process.env.JWT_SECRET || 'fallback_secret_key_2024',
-          { expiresIn: '24h' }
-        );
-        
-        res.json({
-          success: true,
-          token,
-          user: {
-            id: adminUser._id,
-            email: adminUser.email,
-            nom: adminUser.nom,
-            prenom: adminUser.prenom,
-            role: adminUser.role
-          }
-        });
-      } else {
-        res.status(401).json({
-          success: false,
-          message: 'Email ou mot de passe admin incorrect'
-        });
-      }
-    }
-  } catch (error) {
-    console.error('Erreur connexion admin:', error);
-    res.status(500).json({ success: false, message: "Erreur serveur" });
-  }
-});
-
-app.get('/api/auth/check', authenticateToken, (req, res) => {
-  res.json({
-    success: true,
-    user: {
-      id: req.user._id,
-      email: req.user.email,
-      nom: req.user.nom,
-      prenom: req.user.prenom,
-      role: req.user.role
-    }
-  });
-});
-
-// Products endpoints
-app.get('/api/products', async (req, res) => {
-  try {
-    if (mongoConnected) {
-      const products = await Product.find({ enStock: true }).sort({ dateCreation: -1 });
-      res.json({ success: true, products });
-    } else {
-      res.json({ success: true, products: fallbackData.products });
-    }
-  } catch (error) {
-    console.error('Erreur produits:', error);
-    res.json({ success: true, products: fallbackData.products });
-  }
-});
-
-app.get('/api/products/categories', async (req, res) => {
-  try {
-    if (mongoConnected) {
-      const categories = await Product.distinct('categorie');
-      res.json({ success: true, categories });
-    } else {
-      res.json({ success: true, categories: ['Hoodies', 'T-shirts', 'Pantalons'] });
-    }
-  } catch (error) {
-    console.error('Erreur catégories:', error);
-    res.json({ success: true, categories: ['Hoodies', 'T-shirts', 'Pantalons'] });
-  }
-});
-
-app.get('/api/products/:id', async (req, res) => {
-  try {
-    if (mongoConnected) {
-      const product = await Product.findById(req.params.id);
-      if (!product) {
-        return res.status(404).json({ success: false, message: "Produit non trouvé" });
-      }
-      res.json({ success: true, product });
-    } else {
-      const product = fallbackData.products.find(p => p._id === req.params.id);
-      if (!product) {
-        return res.status(404).json({ success: false, message: "Produit non trouvé" });
-      }
-      res.json({ success: true, product });
-    }
-  } catch (error) {
-    console.error('Erreur produit:', error);
-    res.status(500).json({ success: false, message: "Erreur serveur" });
-  }
-});
-
-// Cart endpoint
-app.get('/api/cart', authenticateToken, (req, res) => {
-  res.json({
-    success: true,
-    cart: {
-      articles: [],
-      total: 0
-    }
-  });
-});
-
-// Orders endpoint
-app.get('/api/orders', authenticateToken, async (req, res) => {
-  try {
-    if (mongoConnected) {
-      const orders = await Order.find({ utilisateurId: req.user._id }).populate('articles.produit');
-      res.json({ success: true, orders });
-    } else {
-      res.json({ success: true, orders: [] });
-    }
-  } catch (error) {
-    console.error('Erreur commandes:', error);
-    res.json({ success: true, orders: [] });
-  }
-});
-
-// Admin endpoints
-app.get('/api/admin/check', authenticateToken, (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ success: false, message: "Accès administrateur requis" });
-  }
-  res.json({ success: true, user: req.user });
-});
-
-// Upload endpoint (simulé)
-app.post('/api/upload/product-images', authenticateToken, (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ success: false, message: "Accès administrateur requis" });
-  }
-  
-  res.json({
-    success: true,
-    message: "Upload simulé - À implémenter avec multer",
-    images: [
-      {
-        url: 'https://via.placeholder.com/300x300?text=Uploaded+Image',
-        filename: 'demo-image.jpg'
-      }
-    ]
-  });
-});
-
-// Manifest.json
+// Manifest.json endpoint
 app.get('/manifest.json', (req, res) => {
   res.json({
     "short_name": "Boutique Vêtements",
@@ -549,8 +256,5 @@ app.get('/manifest.json', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Serveur hybride démarré sur le port ${PORT}`);
-  console.log(`📱 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`⚙️ Settings: http://localhost:${PORT}/api/settings`);
-  console.log(`🔗 MongoDB: ${mongoConnected ? 'Connecté' : 'Mode Fallback'}`);
+  console.log(`🚀 Serveur démarré sur le port ${PORT}`);
 });

@@ -1,11 +1,13 @@
 {
-  "name": "boutique-backend-minimal",
+  "name": "boutique-backend",
   "version": "1.0.0",
-  "description": "Backend minimal pour boutique vêtements - Render Deployment",
+  "description": "Backend API pour boutique vêtements - Render Deployment",
   "main": "hybrid-server.js",
   "scripts": {
     "start": "node hybrid-server.js",
-    "test": "echo \"No tests specified\" && exit 0"
+    "dev": "nodemon hybrid-server.js",
+    "test": "echo \"No tests specified\" && exit 0",
+    "build": "echo \"No build step required\" && exit 0"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -14,5 +16,11 @@
     "dotenv": "^16.0.3",
     "jsonwebtoken": "^9.0.0",
     "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
